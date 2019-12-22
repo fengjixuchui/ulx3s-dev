@@ -1,4 +1,4 @@
-FROM alpin3/ulx3s-core
+FROM alpin3/ulx3s-core-dev
 MAINTAINER kost - https://github.com/kost
 
 ENV ULX3SBASEDIR=/opt GHDLSRC=/opt/ghdl-git GHDLOPT=/opt/ghdl
@@ -13,11 +13,20 @@ COPY root /
 RUN apk add -f --allow-untrusted $ULX3SBASEDIR/apk/libgnat-8.3.0-r0.apk && \
  rm -f /var/cache/apk/* && \
  cd $ULX3SBASEDIR && \
+ git clone https://github.com/ldoolitt/vhd2vl.git && \
+ cd vhd2vl/src && \
+ make WARNS="-static" && \
+ install -m 755 -s vhd2vl /usr/local/bin && \
+ cd $ULX3SBASEDIR && \
  git clone --recursive https://github.com/SymbiFlow/prjtrellis && \
  cd prjtrellis/libtrellis/ && \
- cmake -DCMAKE_INSTALL_PREFIX=/usr && \
+ cmake -DCMAKE_INSTALL_PREFIX=/usr/local -DSTATIC_BUILD=OFF -DBUILD_PYTHON=ON -DBUILD_SHARED=ON . && \
  make -j$(nproc) &&\
  make install && \
+ cmake -DCMAKE_INSTALL_PREFIX=/usr/local -DSTATIC_BUILD=ON -DBUILD_PYTHON=OFF -DBUILD_SHARED=OFF . && \
+ make -j$(nproc) &&\
+ make install && \
+ strip /usr/local/bin/ecp* && \
  cd $ULX3SBASEDIR && \
  git clone https://github.com/YosysHQ/nextpnr.git && \
  cd nextpnr && \
@@ -50,10 +59,15 @@ RUN apk add -f --allow-untrusted $ULX3SBASEDIR/apk/libgnat-8.3.0-r0.apk && \
  make -j$(nproc) && \
  make install && \
  strip /usr/local/bin/yosys && \
+ cd $ULX3SBASEDIR && \
+ pip install -e git+https://github.com/mmicko/apio@develop#egg=apio && \
+ apio install scons && \
+ apio install yosys && \
+ apio install ecp5 && \
  echo "Success [build]"
 
 #VOLUME ["/fpga"]
-WORKDIR /opt
+#WORKDIR /opt
 
 
 
